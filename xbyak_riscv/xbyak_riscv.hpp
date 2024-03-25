@@ -9,31 +9,24 @@
 */
 
 // Copyright (C), 2023, KNS Group LLC (YADRO)
-
-#include <stdio.h>
-#include <stdint.h>
-#include <assert.h>
+#include <iostream>
+#include <iomanip>
 #include <list>
 #include <string>
 #include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
 
+#include <cassert>
+#include <cstdint>
+
 #define XBYAK_RISCV_ASSERT(x) assert(x)
 
 #include "xbyak_riscv_csr.hpp"
 
 namespace Xbyak_riscv {
-
 enum {
-	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0010 /* 0xABCD = A.BC.D */
-};
-
-inline uint32_t getVersion() { return VERSION; }
-
-enum {
-	ERR_NONE = 1,
+	ERR_NONE,
 	ERR_OFFSET_IS_TOO_BIG,
 	ERR_CODE_IS_TOO_BIG,
 	ERR_IMM_IS_TOO_BIG,
@@ -48,7 +41,8 @@ enum {
 	ERR_CANT_ALLOC,
 	ERR_BAD_PARAMETER,
 	ERR_MUNMAP,
-	ERR_INTERNAL // Put it at last.
+	ERR_INTERNAL,
+	ERR_MAX,
 };
 
 inline const char *ConvertErrorToString(int err)
@@ -71,8 +65,8 @@ inline const char *ConvertErrorToString(int err)
 		"munmap",
 		"internal error"
 	};
-	assert(ERR_INTERNAL == sizeof(errTbl) / sizeof(*errTbl));
-	return err <= ERR_INTERNAL ? errTbl[err] : "unknown err";
+	assert(ERR_MAX == (sizeof(errTbl) / sizeof(*errTbl)));
+	return (err < ERR_MAX) ? errTbl[err] : "unknown err";
 }
 
 class Error : public std::exception {
@@ -80,6 +74,7 @@ class Error : public std::exception {
 public:
 	explicit Error(int err) : err_(err)
 	{
+    	std::cout << "Error:" << err << std::endl;
 		if (err_ < 0 || err_ > ERR_INTERNAL) {
 			err_ = ERR_INTERNAL;
 		}
@@ -106,13 +101,13 @@ inline const char *ConvertErrorToString(const Error& err)
 
 namespace local {
 
-inline constexpr uint32_t mask(size_t n)
+inline constexpr uint32_t mask(uint32_t n)
 {
 	XBYAK_RISCV_ASSERT(n <= 32);
 	return n == 32 ? 0xffffffff : (1u << n) - 1;
 }
 // is x <= mask(n) ?
-inline constexpr bool inBit(uint32_t x, size_t n)
+inline constexpr bool inBit(uint32_t x, uint32_t n)
 {
 	return x <= mask(n);
 }
@@ -139,19 +134,19 @@ inline bool split32bit(int *pH, int* pL, int x) {
 }
 
 // @@@ embedded by bit_pattern.py (DON'T DELETE THIS LINE)
-inline size_t get20_10to1_11_19to12_z12(size_t v) { return ((v & (1<<20)) << 11)| ((v & (1023<<1)) << 20)| ((v & (1<<11)) << 9)| (v & (255<<12)); }
-inline size_t get12_10to5_z13_4to1_11_z7(size_t v) { return ((v & (1<<12)) << 19)| ((v & (63<<5)) << 20)| ((v & (15<<1)) << 7)| ((v & (1<<11)) >> 4); }
-inline size_t get5to4_9to6_2_3_z5(size_t v) { return ((v & (3<<4)) << 7)| ((v & (15<<6)) << 1)| ((v & (1<<2)) << 4)| ((v & (1<<3)) << 2); }
-inline size_t get9_z5_4_6_8to7_5_z2(size_t v) { return ((v & (1<<9)) << 3)| ((v & (1<<4)) << 2)| ((v & (1<<6)) >> 1)| ((v & (3<<7)) >> 4)| ((v & (1<<5)) >> 3); }
-inline size_t get5to3_z3_2_6_z5(size_t v) { return ((v & (7<<3)) << 7)| ((v & (1<<2)) << 4)| ((v & (1<<6)) >> 1); }
-inline size_t get5to3_z3_7_6_z5(size_t v) { return ((v & (7<<3)) << 7)| ((v & (1<<7)) >> 1)| ((v & (1<<6)) >> 1); }
-inline size_t get5_z5_4to0_z2(size_t v) { return ((v & (1<<5)) << 7)| ((v & 31) << 2); }
-inline size_t get11_4_9to8_10_6_7_3to1_5_z2(size_t v) { return ((v & (1<<11)) << 1)| ((v & (1<<4)) << 7)| ((v & (3<<8)) << 1)| ((v & (1<<10)) >> 2)| ((v & (1<<6)) << 1)| ((v & (1<<7)) >> 1)| ((v & (7<<1)) << 2)| ((v & (1<<5)) >> 3); }
-inline size_t get17_z5_16to12_z2(size_t v) { return ((v & (1<<17)) >> 5)| ((v & (31<<12)) >> 10); }
-inline size_t get5_z5_4to2_7to6_z2(size_t v) { return ((v & (1<<5)) << 7)| ((v & (7<<2)) << 2)| ((v & (3<<6)) >> 4); }
-inline size_t get5_z5_4to3_8to6_z2(size_t v) { return ((v & (1<<5)) << 7)| ((v & (3<<3)) << 2)| ((v & (7<<6)) >> 4); }
-inline size_t get5to2_7to6_z7(size_t v) { return ((v & (15<<2)) << 7)| ((v & (3<<6)) << 1); }
-inline size_t get5to3_8to6_z7(size_t v) { return ((v & (7<<3)) << 7)| ((v & (7<<6)) << 1); }
+inline uint32_t get20_10to1_11_19to12_z12(uint32_t v) { return ((v & (1<<20)) << 11)| ((v & (1023<<1)) << 20)| ((v & (1<<11)) << 9)| (v & (255<<12)); }
+inline uint32_t get12_10to5_z13_4to1_11_z7(uint32_t v) { return ((v & (1<<12)) << 19)| ((v & (63<<5)) << 20)| ((v & (15<<1)) << 7)| ((v & (1<<11)) >> 4); }
+inline uint32_t get5to4_9to6_2_3_z5(uint32_t v) { return ((v & (3<<4)) << 7)| ((v & (15<<6)) << 1)| ((v & (1<<2)) << 4)| ((v & (1<<3)) << 2); }
+inline uint32_t get9_z5_4_6_8to7_5_z2(uint32_t v) { return ((v & (1<<9)) << 3)| ((v & (1<<4)) << 2)| ((v & (1<<6)) >> 1)| ((v & (3<<7)) >> 4)| ((v & (1<<5)) >> 3); }
+inline uint32_t get5to3_z3_2_6_z5(uint32_t v) { return ((v & (7<<3)) << 7)| ((v & (1<<2)) << 4)| ((v & (1<<6)) >> 1); }
+inline uint32_t get5to3_z3_7_6_z5(uint32_t v) { return ((v & (7<<3)) << 7)| ((v & (1<<7)) >> 1)| ((v & (1<<6)) >> 1); }
+inline uint32_t get5_z5_4to0_z2(uint32_t v) { return ((v & (1<<5)) << 7)| ((v & 31) << 2); }
+inline uint32_t get11_4_9to8_10_6_7_3to1_5_z2(uint32_t v) { return ((v & (1<<11)) << 1)| ((v & (1<<4)) << 7)| ((v & (3<<8)) << 1)| ((v & (1<<10)) >> 2)| ((v & (1<<6)) << 1)| ((v & (1<<7)) >> 1)| ((v & (7<<1)) << 2)| ((v & (1<<5)) >> 3); }
+inline uint32_t get17_z5_16to12_z2(uint32_t v) { return ((v & (1<<17)) >> 5)| ((v & (31<<12)) >> 10); }
+inline uint32_t get5_z5_4to2_7to6_z2(uint32_t v) { return ((v & (1<<5)) << 7)| ((v & (7<<2)) << 2)| ((v & (3<<6)) >> 4); }
+inline uint32_t get5_z5_4to3_8to6_z2(uint32_t v) { return ((v & (1<<5)) << 7)| ((v & (3<<3)) << 2)| ((v & (7<<6)) >> 4); }
+inline uint32_t get5to2_7to6_z7(uint32_t v) { return ((v & (15<<2)) << 7)| ((v & (3<<6)) << 1); }
+inline uint32_t get5to3_8to6_z7(uint32_t v) { return ((v & (7<<3)) << 7)| ((v & (7<<6)) << 1); }
 // @@@ embedded by bit_pattern.py (DON'T DELETE THIS LINE)
 
 } // local
@@ -254,46 +249,11 @@ public:
 	void append4B(uint32_t code) { code_.push_back(code); }
 	
 	void write4B(size_t offset, uint32_t v) { code_.at(offset) = v; }
-	void dump(bool separate = false) const
-	{
-		const uint8_t *p = getCode();
-		const size_t bufSize = getSize();
-		if (separate) {
-			size_t pos = 0;
-			while (pos < bufSize) {
-				uint32_t v = p[pos];
-				size_t n = (v & 3) == 3 ? 4 : 2;
-				if (pos + n <= bufSize) {
-					for (size_t i = 0; i < n; i++) {
-						printf("%02x", p[pos + n - 1 - i]);
-					}
-					printf("\n");
-					pos += n;
-				} else {
-					printf("%02x error\n", v);
-					return;
-				}
-			}
-			return;
-		}
-		size_t remain = bufSize;
-		for (int i = 0; i < 4; i++) {
-			size_t disp = 16;
-			if (remain < 16) {
-				disp = remain;
-			}
-			for (size_t j = 0; j < 16; j++) {
-				if (j < disp) {
-					printf("%02x", p[i * 16 + j]);
-				}
-			}
-			putchar('\n');
-			remain -= disp;
-			if (remain == 0) {
-				break;
-			}
-		}
-	}
+
+	// **TODO**  add code base address
+	const uint32_t getCurr() const{ return static_cast<uint32_t>(code_.size()) * 4; }
+	
+	const auto &getCode() const{ return code_; }
 };
 
 struct Jmp {
@@ -302,60 +262,54 @@ struct Jmp {
 		tBtype,
 		tRawAddress,
 	} type;
-	const uint8_t* from; /* address of the jmp mnemonic */
+	const uint32_t from; /* address of the jmp mnemonic */
 	uint32_t encoded;
-	size_t encSize() const
-	{
-		return (type == tRawAddress) ? sizeof(size_t) : 4;
-	}
+
 	// jal
-	Jmp(const uint8_t *from, uint32_t opcode, const Reg& rd)
+	Jmp(uint32_t from, uint32_t opcode, const Reg& rd)
 		: type(tJal)
 		, from(from)
 		, encoded((rd.getIdx() << 7) | opcode)
 	{
 	}
 	// B-type
-	Jmp(const uint8_t* from, uint32_t opcode, uint32_t funct3, const Reg& src1, const Reg& src2)
+	Jmp(uint32_t from, uint32_t opcode, uint32_t funct3, const Reg& src1, const Reg& src2)
 		: type(tBtype)
 		, from(from)
 		, encoded((src2.getIdx() << 20) | (src1.getIdx() << 15) | (funct3 << 12) | opcode)
 	{
 	}
 	// raw address
-	explicit Jmp(const uint8_t* from)
+	explicit Jmp(uint32_t from)
 		: type(tRawAddress)
 		, from(from)
 		, encoded(0)
 	{
 	}
-	static inline bool isValidImm(size_t imm, size_t maskBit)
-	{
-		const size_t M = local::mask(maskBit);
-		return (imm < M || ~M <= imm) && (imm & 1) == 0;
-	}
-	size_t encode(const uint8_t* addr) const
+	
+	uint32_t encode(uint32_t addr) const
 	{
 		if (addr == 0) return 0;
-		if (type == tRawAddress) return size_t(addr);
-		const size_t imm = addr - from;
+		if (type == tRawAddress) return addr;
+		const int imm = addr - from;
+		std::cout << "JUMP " << addr << " - " << from << " = " << imm << std::endl;
 		if (type == tJal) {
-			if (!isValidImm(imm, 20)) XBYAK_RISCV_THROW(ERR_INVALID_IMM_OF_JAL)
+			if (!local::inSBit(imm, 20)) XBYAK_RISCV_THROW(ERR_INVALID_IMM_OF_JAL)
 			return local::get20_10to1_11_19to12_z12(imm) | encoded;
 		} else {
-			if (!isValidImm(imm, 12)) XBYAK_RISCV_THROW(ERR_INVALID_IMM_OF_JAL)
+			if (!local::inSBit(imm, 12)) XBYAK_RISCV_THROW(ERR_INVALID_IMM_OF_JAL)
 			return local::get12_10to5_z13_4to1_11_z7(imm) | encoded;
 		}
 	}
 	// update jmp address by base->getCurr()
 	void update(CodeArray *base) const
 	{
-		base->writeBytes(from, encode(base->getCurr()), encSize());
+		base->write4B(from, encode(base->getCurr()));
 	}
 	// append jmp opcode with addr
-	void appendCode(CodeArray *base, const uint8_t *addr) const
+	void appendCode(CodeArray *base, uint32_t addr) const
 	{
-		base->appendBytes(encode(addr), encSize());
+		base->append4B(encode(addr));
 	}
 };
 
@@ -372,14 +326,14 @@ public:
 	~Label();
 	void clear() { mgr = 0; id = 0; }
 	int getId() const { return id; }
-	const uint8_t *getAddress() const;
+	uint32_t getAddress() const;
 };
 
 class LabelManager {
 	// for Label class
 	struct ClabelVal {
-		ClabelVal(const uint8_t* addr = 0) : addr(addr), refCount(1) {}
-		const uint8_t* addr;
+		ClabelVal(uint32_t addr = 0) : addr(addr), refCount(1) {}
+		const uint32_t addr;
 		int refCount;
 	};
 	typedef std::unordered_map<int, ClabelVal> ClabelDefList;
@@ -397,7 +351,7 @@ class LabelManager {
 		if (label.id == 0) label.id = labelId_++;
 		return label.id;
 	}
-	void define_inner(ClabelDefList& defList, ClabelUndefList& undefList, int labelId, const uint8_t* addr)
+	void define_inner(ClabelDefList& defList, ClabelUndefList& undefList, int labelId, uint32_t addr)
 	{
 		// add label
 		ClabelDefList::value_type item(labelId, addr);
@@ -475,7 +429,7 @@ public:
 		labelPtrList_.insert(&dst);
 	}
 	// return 0 unless label exists
-	const uint8_t* getAddr(const Label& label) const
+	uint32_t getAddr(const Label& label) const
 	{
 		ClabelDefList::const_iterator i = clabelDefList_.find(getId(label));
 		if (i == clabelDefList_.end()) return 0;
@@ -486,7 +440,6 @@ public:
 		clabelUndefList_.insert(ClabelUndefList::value_type(label.id, jmp));
 	}
 	bool hasUndefClabel() const { return hasUndefinedLabel_inner(clabelUndefList_); }
-	const uint8_t *getCode() const { return base_->getCode(); }
 };
 
 inline Label::Label(const Label& rhs)
@@ -507,7 +460,7 @@ inline Label::~Label()
 {
 	if (id && mgr) mgr->decRefCount(id, this);
 }
-inline const uint8_t* Label::getAddress() const
+inline uint32_t Label::getAddress() const
 {
 	if (mgr == 0) return 0;
 	return mgr->getAddr(*this);
@@ -564,7 +517,7 @@ private:
     
 	void opJmp(const Label& label, const Jmp& jmp)
 	{
-		const uint8_t* addr = labelMgr_.getAddr(label);
+		const uint32_t addr = labelMgr_.getAddr(label);
 		jmp.appendCode(this, addr);
 		if (addr) return;
 		labelMgr_.addUndefinedLabel(label, jmp);
@@ -752,8 +705,10 @@ public:
 	}
 
 	bool hasUndefinedLabel() const { return labelMgr_.hasUndefClabel(); }
+
+    // **YUCK**
+	#include "xbyak_riscv_mnemonic.hpp"
 };
-#include "xbyak_riscv_mnemonic.hpp"
 
 } // Xbyak_riscv
 
