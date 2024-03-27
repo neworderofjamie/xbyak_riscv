@@ -50,8 +50,7 @@ struct Code : Xbyak_riscv::CodeGenerator {
         blt(x2, x3, loop);
         
         // *x2 address = x1 (sum)
-        sw(x1, x2, 0);
-        
+        sw(x1, x2, 0);  
 	}
 };
 
@@ -64,9 +63,9 @@ int main(int argc, char** argv)
 
     fout.write(reinterpret_cast<const char*>(code.getCode().data()), code.getCode().size() * 4);
     
-    //return 0;
-    // Map memory regions
-    int memFD = open("/dev/mem", O_RDWR);
+    // Open memory device
+    // **NOTE** O_SYNC turns of caching
+    int memFD = open("/dev/mem", O_RDWR | O_SYNC);
     if(memFD == -1) {
         std::cerr << "/dev/mem open failure (" << errno<< " = " << strerror(errno) << ")" << std::endl;
         return 1;
@@ -111,7 +110,6 @@ int main(int argc, char** argv)
     
     for(unsigned int i = 0; i < 501; i++) {
         printf("%u,", dtcm[i]);
-        //assert(dtcm[i] == i);
     }
     
     
