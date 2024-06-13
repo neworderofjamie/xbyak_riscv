@@ -20,7 +20,7 @@
 #define DATA_SIZE 65536
 #define GPIO_SIZE 8192
 
-struct Code : Xbyak_riscv::CodeGenerator {
+/*struct Code : Xbyak_riscv::CodeGenerator {
     Code()
     {
         using namespace Xbyak_riscv;
@@ -52,6 +52,59 @@ struct Code : Xbyak_riscv::CodeGenerator {
         // *x2 address = x1 (sum)
         sw(x1, x2, 0);  
     }
+};*/
+
+struct Code : Xbyak_riscv::CodeGenerator {
+    Code()
+    {
+        using namespace Xbyak_riscv;
+        
+        // alpha = e^(-1/20)
+        vlui(v0, 7792);
+        
+        // v = 0
+        vlui(v1, 0);
+        
+        // v_thresh = 1
+        vlui(v2, 8192);
+
+        // v_reset = 0
+        vlui(v3, 0);
+        
+        // i = vmem[0..32]
+        vloadv(v4, zero, 0);
+        
+        // t = 6400
+        addi(x1, zero, 25);
+        slli(x1, x1, 8);
+        
+        // a = 64 (2 bytes * 32 lanes)
+        addi(x2, zero, 64);
+        
+        Label loop;
+        L(loop);
+        
+        // v *= alpha
+        vmul(13, v1, v1, v0);
+        
+        // v += i
+        vadd(v1, v1, v4);
+        
+        // spk = v > 1.0
+        vslt(x3, v2, v1);
+        
+        // v = spk ? v_reset : v
+        vsel(v1, x3, v3);
+        
+        //vmem[a...a+32] = v
+        vstore(v1, x2);
+        
+        // a += 64 (2 bytes * 32 lanes)
+        addi(x2, x2, 64);
+        
+        // While x2 (address) < x1 (count), goto loop
+        blt(x2, x1, loop);
+    }
 };
 
 int main(int argc, char** argv)
@@ -63,6 +116,7 @@ int main(int argc, char** argv)
 
     fout.write(reinterpret_cast<const char*>(code.getCode().data()), code.getCode().size() * 4);
     
+    return 0;
     // Open memory device
     // **NOTE** O_SYNC turns of caching
     int memFD = open("/dev/mem", O_RDWR | O_SYNC);
