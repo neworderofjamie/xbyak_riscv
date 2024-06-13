@@ -216,10 +216,20 @@ struct Reg : public local::IReg {
 	explicit constexpr Reg(int idx = 0) : local::IReg(idx, IReg::Kind::GPR) { }
 };
 
+// FeNN vector register
+struct VReg : public local::IReg {
+    explicit constexpr VReg(int idx = 0) : local::IReg(idx, IReg::Kind::VECTOR) { }
+};
+
 static constexpr Reg x0(0), x1(1), x2(2), x3(3), x4(4), x5(5), x6(6), x7(7);
 static constexpr Reg x8(8), x9(9), x10(10), x11(11), x12(12), x13(13), x14(14), x15(15);
 static constexpr Reg x16(16), x17(17), x18(18), x19(19), x20(20), x21(21), x22(22), x23(23);
 static constexpr Reg x24(24), x25(25), x26(26), x27(27), x28(28), x29(29), x30(30), x31(31);
+
+static constexpr VReg v0(0), v1(1), v2(2), v3(3), v4(4), v5(5), v6(6), v7(7);
+static constexpr VReg v8(8), v9(9), v10(10), v11(11), v12(12), v13(13), v14(14), v15(15);
+static constexpr VReg v16(16), v17(17), v18(18), v19(19), v20(20), v21(21), v22(22), v23(23);
+static constexpr VReg v24(24), v25(25), v26(26), v27(27), v28(28), v29(29), v30(30), v31(31);
 
 static constexpr Reg zero(x0);
 static constexpr Reg ra(x1);

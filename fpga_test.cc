@@ -21,20 +21,20 @@
 #define GPIO_SIZE 8192
 
 struct Code : Xbyak_riscv::CodeGenerator {
-	Code()
-	{
-    	using namespace Xbyak_riscv;
-    	
-    	// x1 (sum) = 0
-		addi(x1, x0, 0);
-		
-		// x2 (address) = 0
-		addi(x2, x0, 0);
-		
-		// x3 (count) = 2000
-		addi(x3, x0, 2000);
+    Code()
+    {
+        using namespace Xbyak_riscv;
+        
+        // x1 (sum) = 0
+        addi(x1, x0, 0);
+        
+        // x2 (address) = 0
+        addi(x2, x0, 0);
+        
+        // x3 (count) = 2000
+        addi(x3, x0, 2000);
 
-		Label loop;
+        Label loop;
         L(loop);
         
         // x4 = *x2 (address)
@@ -51,7 +51,7 @@ struct Code : Xbyak_riscv::CodeGenerator {
         
         // *x2 address = x1 (sum)
         sw(x1, x2, 0);  
-	}
+    }
 };
 
 int main(int argc, char** argv)
