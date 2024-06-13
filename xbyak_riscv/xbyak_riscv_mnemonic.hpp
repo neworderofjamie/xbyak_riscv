@@ -149,7 +149,7 @@ void csrci(CSR csr, uint32_t imm) { csrrci(x0, csr, imm); }
 // VSOP
 void vadd(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x0, 0x0, rd, rs1, rs2); }
 void vsub(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x2, 0x0, rd, rs1, rs2); }
-void vmul(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x4, 0x0, rd, rs1, rs2); }
+void vmul(Bit4 shift, const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x4, shift.v, rd, rs1, rs2); }
 
 // VTST
 void vseq(const Reg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x2, 0x0, 0x2, rd, rs1, rs2); }
@@ -168,5 +168,4 @@ void vloadv(const VReg &rd, const Reg &addr, int imm = 0){ Itype(0x12, 0x0, rd, 
 void vloads(const VReg &rd, const Reg &addr, int imm = 0){ Itype(0x12, 0x4, rd, addr, imm); }
 
 // VSTORE
-//Stype(Bit7 opcode, Bit3 funct3, Bit5 rs1, Bit5 rs2, int imm)
 void vstore(const VReg &rs, const Reg &addr, int imm = 0){ Stype(0x16, 0x0, addr, rs, imm); }

@@ -516,6 +516,7 @@ public:
 	typedef local::Bit<1> Bit1;
 	typedef local::Bit<2> Bit2;
 	typedef local::Bit<3> Bit3;
+    typedef local::Bit<4> Bit4;
 	typedef local::Bit<5> Bit5;
 	typedef local::Bit<6> Bit6;
 	typedef local::Bit<7> Bit7;
