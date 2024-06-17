@@ -91,6 +91,7 @@ struct Code : Xbyak_riscv::CodeGenerator {
         vadd(v1, v1, v4);
         
         // spk = v > 1.0
+        addi(x3, zero, 0);
         vslt(x3, v2, v1);
         
         // v = spk ? v_reset : v
@@ -112,9 +113,11 @@ int main(int argc, char** argv)
     Code code;
 
     std::ofstream fout;
-    fout.open("file.bin", std::ios::binary);
-
-    fout.write(reinterpret_cast<const char*>(code.getCode().data()), code.getCode().size() * 4);
+    fout.open("file.mem");
+    
+    for(const auto c : code.getCode()) {
+        fout << std::setfill('0') << std::setw(8) << std::hex << c << std::endl;
+    }
     
     return 0;
     // Open memory device
