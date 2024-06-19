@@ -147,9 +147,10 @@ void csrci(CSR csr, uint32_t imm) { csrrci(x0, csr, imm); }
 // FeNN vector processor
 
 // VSOP
-void vadd(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x0, 0x0, rd, rs1, rs2); }
-void vsub(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x2, 0x0, rd, rs1, rs2); }
-void vmul(Bit4 shift, const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x0, 0x4, shift.v, rd, rs1, rs2); }
+// Rtype(Bit7 opcode, Bit3 funct3, Bit7 funct7, Bit5 rd, Bit5 rs1, Bit5 rs2)
+void vadd(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x2, 0x0, 0x0, rd, rs1, rs2); }
+void vsub(const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x2, 0x2, 0x0, rd, rs1, rs2); }
+void vmul(Bit4 shift, const VReg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x2, 0x4, shift.v, rd, rs1, rs2); }
 
 // VTST
 void vseq(const Reg &rd, const VReg &rs1, const VReg &rs2){ Rtype(0x2, 0x0, 0x2, rd, rs1, rs2); }
